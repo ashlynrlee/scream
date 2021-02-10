@@ -107,9 +107,9 @@ TEST_CASE("input_output_basic","io")
   // Check average output
   input_type avg_input(io_comm,avg_params,field_repo,grid_man);
   avg_input.pull_input();
-  f1.sync_to_dev();
-  f2.sync_to_dev();
-  f3.sync_to_dev();
+  f1.sync_to_host();
+  f2.sync_to_host();
+  f3.sync_to_host();
   Real avg_val;
   for (int ii=0;ii<num_lcols;++ii) {
     avg_val = (max_steps+1)/2.0*dt + ii; // Sum(x0+i*dt,i=1...N) = N*x0 + dt*N*(N+1)/2, AVG = Sum/N, note x0=ii in this case
