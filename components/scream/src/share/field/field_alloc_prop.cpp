@@ -85,23 +85,22 @@ subview (const int idim, const int k) const {
   return props;
 }
 
-void FieldAllocProp::request_allocation (const int scalar_size, const int pack_size) {
+void FieldAllocProp::set_scalar_size (const int scalar_type_size) {
+  EKAT_REQUIRE_MSG (!is_committed(),
+      "Error! Cannot change allocation properties after they have been committed.\n");
+  EKAT_REQUIRE_MSG (m_scalar_type_size==0 || scalar_type_size==m_scalar_type_size,
+      "Error! Cannot reset scalar type size once it's set.\n");
+
+  m_scalar_type_size = scalar_type_size;
+}
+
+void FieldAllocProp::request_allocation (const int pack_size) {
   using ekat::ScalarTraits;
   using namespace ekat::error;
 
   ekat::error::runtime_check(!m_committed, "Error! Cannot change allocation properties after they have been commited.\n");
 
-  const int vts = scalar_size*pack_size;
-  if (m_scalar_type_size==0) {
-    // This is the first time we receive a request. Set the scalar type properties
-    m_scalar_type_size = scalar_size;
-  } else {
-    // Make sure the new scalar_type coincides with the one already stored (check name and size)
-    runtime_check(scalar_size==m_scalar_type_size,
-                  std::string("Error! Scalar type incompatible with current allocation request:\n") +
-                  "         stored scalar type size: " + std::to_string(m_scalar_type_size) + "\n" +
-                  "         requested scalar type size: " + std::to_string(scalar_size) + "\n");
-  }
+  const int vts = m_scalar_type_size*pack_size;
 
   // Store the size of the value type.
   m_value_type_sizes.push_back(vts);
@@ -109,10 +108,11 @@ void FieldAllocProp::request_allocation (const int scalar_size, const int pack_s
 
 void FieldAllocProp::request_allocation (const FieldAllocProp& src)
 {
-  const auto sts = src.m_scalar_type_size;
+  EKAT_REQUIRE_MSG (m_scalar_type_size==src.m_scalar_type_size,
+      "Error! Input allocation has a different scalar type size than the current one.\n");
   for (auto vts : src.m_value_type_sizes) {
     // For each value type size, the pack size is simply vts/sts.
-    request_allocation(sts, vts/sts);
+    request_allocation(vts/m_scalar_type_size);
   }
 }
 
@@ -125,6 +125,9 @@ void FieldAllocProp::commit (const layout_ptr_type& layout)
 
   EKAT_REQUIRE_MSG (layout,
       "Error! Invalid input layout pointer.\n");
+
+  EKAT_REQUIRE_MSG (m_scalar_type_size>0,
+      "Error! Scalar type size has not been set yet.\n");
 
   if (m_alloc_size>0) {
     // This obj was created as a subview of another alloc props obj.
@@ -181,6 +184,16 @@ int FieldAllocProp::get_last_extent () const {
   EKAT_REQUIRE_MSG(is_committed(),
       "Error! You cannot query the allocation strides until after calling commit().");
   return m_last_extent;
+}
+
+bool FieldAllocProp::is_compatible(const int sts, const int pack_size) const {
+  EKAT_REQUIRE_MSG (is_committed(),
+      "Error! Cannot check allocation properties until they have been committed.\n");
+
+  // Allocation is compatible with a pack of length pack_size of scalars of size sts if
+  //   - sts is the same as m_scalar_type_size
+  //   - the pack_size must divide the last dim extent
+  return sts==m_scalar_type_size && (m_last_extent%pack_size==0);
 }
 
 } // namespace scream

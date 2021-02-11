@@ -69,7 +69,7 @@ public:
     GroupRequest (const std::string& name_, const std::string& grid_, const int ps = 1)
      : name(name_), grid(grid_), pack_size(ps)
     {
-      EKAT_REQUIRE_MSG(pack_size>=1, "Error! Invalid pack size request.\n");
+      EKAT_REQUIRE_MSG(ps>=1, "Error! Invalid pack size request.\n");
     }
 
     // Group name
@@ -77,10 +77,32 @@ public:
     // Grid name
     ci_string grid;
     // Request an allocation that can accomodate a value type like Pack<Real,pack_size>
-    int       pack_size;
+    int pack_size;
 
     friend bool operator<(const GroupRequest&, const GroupRequest&);
   };
+  struct FieldRequest {
+    FieldRequest (const FieldIdentifier& fid_, const int ps = 1)
+     : fid(fid_), pack_size(ps)
+    {
+      EKAT_REQUIRE_MSG(ps>=1, "Error! Invalid pack size request.\n");
+    }
+    FieldRequest (const FieldIdentifier& fid_, const ci_string& group_, const int ps = 1)
+     : fid(fid_), group(group_), pack_size(ps)
+    {
+      EKAT_REQUIRE_MSG(ps>=1, "Error! Invalid pack size request.\n");
+    }
+
+    // Field identifier
+    FieldIdentifier fid;
+    // A group the field should belong to
+    ci_string group;
+    // Request an allocation that can accomodate a value type like Pack<Real,pack_size>
+    int pack_size;
+
+    friend bool operator<(const FieldRequest&, const FieldRequest&);
+  };
+
 
   virtual ~AtmosphereProcess () = default;
 
@@ -140,20 +162,8 @@ public:
   //       However, if this process is of type Group, we don't really want to add it
   //       as provider/customer. The group is just a 'design layer', and the stored
   //       processes are the actuall providers/customers.
-  void set_required_field (const Field<const Real>& f) {
-    ekat::error::runtime_check(
-        requires(f.get_header().get_identifier()),
-        "Error! This atmosphere process does not require this field. "
-        "Something is wrong up the call stack. Please, contact developers.\n");
-    set_required_field_impl (f);
-  }
-  void set_computed_field (const Field<Real>& f) {
-    ekat::error::runtime_check(
-        computes(f.get_header().get_identifier()),
-        "Error! This atmosphere process does not compute this field. "
-        "Something is wrong up the call stack. Please, contact developers.\n");
-    set_computed_field_impl (f);
-  }
+  virtual void set_required_field (const Field<const Real>& f) = 0;
+  virtual void set_computed_field (const Field<Real>& f) = 0;
 
   // Note: for the following (unlike set_required/computed_field, we do provide an
   //       implementation, since requiring a group is "rare".
@@ -180,13 +190,10 @@ public:
     );
   }
 
-  // Register required/computed fields in the field repo
-  virtual void register_fields (FieldRepository<Real>& field_repo) const = 0;
-
   // These two methods allow the driver to figure out what process need
   // a given field and what process updates a given field.
-  virtual const std::set<FieldIdentifier>& get_required_fields () const = 0;
-  virtual const std::set<FieldIdentifier>& get_computed_fields () const = 0;
+  virtual const std::set<FieldRequest>& get_required_fields () const = 0;
+  virtual const std::set<FieldRequest>& get_computed_fields () const = 0;
 
   // If needed, an Atm Proc can claim to need/update a whole group of fields, without really knowing
   // a priori how many they are, or even what they are. Each entry of the returned set is a pair
@@ -198,27 +205,6 @@ public:
   }
   virtual std::set<GroupRequest> get_updated_groups () const {
     return std::set<GroupRequest>();
-  }
-
-  // NOTE: C++20 will introduce the method 'contains' for std::set. Till then, use our util free function
-  bool requires (const FieldIdentifier& id) const { return ekat::contains(get_required_fields(),id); }
-  bool computes (const FieldIdentifier& id) const { return ekat::contains(get_computed_fields(),id); }
-
-  bool requires_group (const std::string& name, const std::string& grid) const {
-    for (const auto& it : get_required_groups()) {
-      if (it.name==name && it.grid==grid) {
-        return true;
-      }
-    }
-    return false;
-  }
-  bool updates_group (const std::string& name, const std::string& grid) const {
-    for (const auto& it : get_updated_groups()) {
-      if (it.name==name && it.grid==grid) {
-        return true;
-      }
-    }
-    return false;
   }
 
 protected:
@@ -246,9 +232,6 @@ protected:
     f.get_header_ptr()->get_tracking().add_customer(weak_from_this());
   }
 
-  virtual void set_required_field_impl (const Field<const Real>& f) = 0;
-  virtual void set_computed_field_impl (const Field<      Real>& f) = 0;
-
 private:
 
   // This process's copy of the timestamp, which is set on initialization and
@@ -266,7 +249,23 @@ inline bool operator< (const AtmosphereProcess::GroupRequest& lhs,
     if (lhs.grid<rhs.grid) {
       return true;
     } else if (lhs.grid==rhs.grid) {
-      return lhs.pack_size < rhs.pack_size;
+      return lhs.pack_size<rhs.pack_size;
+    }
+  }
+  return false;
+}
+
+// To allow using FieldRequest in std sorted containers
+inline bool operator< (const AtmosphereProcess::FieldRequest& lhs,
+                       const AtmosphereProcess::FieldRequest& rhs)
+{
+  if (lhs.fid<rhs.fid) {
+    return true;
+  } else if (lhs.fid==rhs.fid) {
+    if (lhs.pack_size<rhs.pack_size) {
+      return true;
+    } else if (lhs.pack_size==rhs.pack_size) {
+      return lhs.group<rhs.group;
     }
   }
   return false;

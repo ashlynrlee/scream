@@ -55,11 +55,15 @@ public:
   void set_updated_group (const FieldGroup<Real>& group);
 
   // Register all fields in the given repo
-  void register_fields (FieldRepository<Real>& field_repo) const;
+  // void register_fields (FieldRepository<Real>& field_repo) const;
 
   // The methods used to query the process for its inputs/outputs
-  const std::set<FieldIdentifier>&  get_required_fields () const { return m_required_fields; }
-  const std::set<FieldIdentifier>&  get_computed_fields () const { return m_computed_fields; }
+  const std::set<FieldRequest>&  get_required_fields () const { return m_required_fields; }
+  const std::set<FieldRequest>&  get_computed_fields () const { return m_computed_fields; }
+
+  // The methods to set the fields in the process
+  void set_required_field (const Field<const Real>& f);
+  void set_computed_field (const Field<      Real>& f);
 
   std::set<GroupRequest> get_required_groups () const;
   std::set<GroupRequest> get_updated_groups () const;
@@ -104,10 +108,6 @@ protected:
   void run_sequential (const Real dt);
   void run_parallel   (const Real dt);
 
-  // The methods to set the fields in the process
-  void set_required_field_impl (const Field<const Real>& f);
-  void set_computed_field_impl (const Field<      Real>& f);
-
   // Method to build the identifier of a field on the reference grid given
   // an identifier on a different grid
   FieldIdentifier create_ref_fid (const FieldIdentifier& fid,
@@ -133,8 +133,8 @@ protected:
   ScheduleType   m_group_schedule_type;
 
   // The cumulative set of required/computed fields of the atm processes in the group
-  std::set<FieldIdentifier>      m_required_fields;
-  std::set<FieldIdentifier>      m_computed_fields;
+  std::set<FieldRequest>      m_required_fields;
+  std::set<FieldRequest>      m_computed_fields;
 
   // The remappers are to map output/input fields to/from the reference grid
   // Note: the i-th entry of the vector is a map of remappers needed by the i-th process.

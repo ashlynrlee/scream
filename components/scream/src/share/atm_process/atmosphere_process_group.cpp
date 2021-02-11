@@ -374,45 +374,45 @@ set_updated_group (const FieldGroup<Real>& group)
   }
 }
 
-void AtmosphereProcessGroup::register_fields (FieldRepository<Real>& field_repo) const {
-  for (int iproc=0; iproc<m_group_size; ++iproc) {
-    const auto& atm_proc = m_atm_processes[iproc];
-    atm_proc->register_fields(field_repo);
+// void AtmosphereProcessGroup::register_fields (FieldRepository<Real>& field_repo) const {
+//   for (int iproc=0; iproc<m_group_size; ++iproc) {
+//     const auto& atm_proc = m_atm_processes[iproc];
+//     atm_proc->register_fields(field_repo);
 
-#ifdef SCREAM_DEBUG
-    // Make sure processes are not calling methods they shouldn't on the repo
-    EKAT_REQUIRE_MSG(field_repo.repository_state()==RepoState::Open,
-                         "Error! Atmosphere processes are *not* allowed to modify the state of the repository.\n");
+// #ifdef SCREAM_DEBUG
+//     // Make sure processes are not calling methods they shouldn't on the repo
+//     EKAT_REQUIRE_MSG(field_repo.repository_state()==RepoState::Open,
+//                          "Error! Atmosphere processes are *not* allowed to modify the state of the repository.\n");
 
-    // Check that the required fields are indeed in the repo now
-    for (const auto& id : atm_proc->get_required_fields()) {
-      EKAT_REQUIRE_MSG(field_repo.has_field(id), "Error! Process '" + atm_proc->name() + "' failed to register required field '" + id.get_id_string() + "'.\n");
-    }
-    for (const auto& id : atm_proc->get_computed_fields()) {
-      EKAT_REQUIRE_MSG(field_repo.has_field(id), "Error! Process '" + atm_proc->name() + "' failed to register computed field '" + id.get_id_string() + "'.\n");
-    }
-#endif
+//     // Check that the required fields are indeed in the repo now
+//     for (const auto& id : atm_proc->get_required_fields()) {
+//       EKAT_REQUIRE_MSG(field_repo.has_field(id), "Error! Process '" + atm_proc->name() + "' failed to register required field '" + id.get_id_string() + "'.\n");
+//     }
+//     for (const auto& id : atm_proc->get_computed_fields()) {
+//       EKAT_REQUIRE_MSG(field_repo.has_field(id), "Error! Process '" + atm_proc->name() + "' failed to register computed field '" + id.get_id_string() + "'.\n");
+//     }
+// #endif
 
-    // Additionally, register all the fields that are needed just for remap reasons.
-    // At least half of these are already registered, since they are inputs/outputs
-    // of the stored atm processes. But there's no problem registering the same field
-    // twice in the repo.
-    for (auto it : m_inputs_remappers[iproc]) {
-      const int num_fields = it.second->get_num_registered_fields();
-      for (int ifield=0; ifield<num_fields; ++ifield) {
-        field_repo.register_field(it.second->get_src_field_id(ifield));
-        field_repo.register_field(it.second->get_tgt_field_id(ifield));
-      }
-    }
-    for (auto it : m_outputs_remappers[iproc]) {
-      const int num_fields = it.second->get_num_registered_fields();
-      for (int ifield=0; ifield<num_fields; ++ifield) {
-        field_repo.register_field(it.second->get_src_field_id(ifield));
-        field_repo.register_field(it.second->get_tgt_field_id(ifield));
-      }
-    }
-  }
-}
+//     // Additionally, register all the fields that are needed just for remap reasons.
+//     // At least half of these are already registered, since they are inputs/outputs
+//     // of the stored atm processes. But there's no problem registering the same field
+//     // twice in the repo.
+//     for (auto it : m_inputs_remappers[iproc]) {
+//       const int num_fields = it.second->get_num_registered_fields();
+//       for (int ifield=0; ifield<num_fields; ++ifield) {
+//         field_repo.register_field(it.second->get_src_field_id(ifield));
+//         field_repo.register_field(it.second->get_tgt_field_id(ifield));
+//       }
+//     }
+//     for (auto it : m_outputs_remappers[iproc]) {
+//       const int num_fields = it.second->get_num_registered_fields();
+//       for (int ifield=0; ifield<num_fields; ++ifield) {
+//         field_repo.register_field(it.second->get_src_field_id(ifield));
+//         field_repo.register_field(it.second->get_tgt_field_id(ifield));
+//       }
+//     }
+//   }
+// }
 
 std::set<AtmosphereProcessGroup::GroupRequest>
 AtmosphereProcessGroup::get_required_groups () const {
@@ -502,14 +502,14 @@ AtmosphereProcessGroup::create_ref_fid (const FieldIdentifier& fid,
 }
 
 void AtmosphereProcessGroup::
-process_required_field (const FieldIdentifier& fid,
+process_required_field (const FieldRequest& req,
                         const remapper_ptr_type& remap_in) {
   // Whether this fid is on the reference grid or not, we expose
   // as input a copy of fid on the reference grid.
   // If fid is not on the reference grid, we add fid to our 'computed' fields.
-  const auto& gname = fid.get_grid_name();
+  const auto& gname = req.id.get_grid_name();
   const bool is_ref_grid = (gname==m_ref_grid_name);
-  const FieldIdentifier ref_fid = is_ref_grid ? fid : create_ref_fid(fid,remap_in);
+  const FieldIdentifier ref_fid = is_ref_grid ? req.fid : create_ref_fid(fid,remap_in);
 
   if (m_group_schedule_type==ScheduleType::Sequential) {
     // If the schedule is sequential, we do not add inputs if they are computed

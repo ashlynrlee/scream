@@ -275,8 +275,8 @@ Field (const identifier_type& id)
  : m_header     (create_header(id))
  , m_prop_checks(new property_check_list)
 {
-  // At the very least, the allocation properties need to accommodate this field's real type.
-  m_header->get_alloc_properties().request_allocation<RT>();
+  // Set scalar size in the allocation properties.
+  m_header->get_alloc_properties().set_scalar_size(sizeof(RT));
 }
 
 template<typename RealType>

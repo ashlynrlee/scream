@@ -70,18 +70,12 @@ public:
   // Return allocation props of an unmanaged subivew of this field
   // at entry k along dimension idim.
   FieldAllocProp subview (const int idim, const int k) const;
-
-  // Request allocation able to accommodate the given ValueType
-  template<typename ValueType>
-  void request_allocation ();
-
-  // Request allocation able to accommodate a pack of ScalarType of the given pack size
-  template<typename ScalarType>
-  void request_allocation (int pack_size);
+  
+  void set_scalar_size (const int scalar_type_size);
 
   // Request allocation able to accommodate pack_size scalars,
   // where scalars have size scalar_size
-  void request_allocation (int scalar_size, int pack_size);
+  void request_allocation (int pack_size);
 
   // Request allocation able to accommodate all the alloc props in src.
   // Note: src does not need to be committed yet.
@@ -110,6 +104,8 @@ public:
   // Whether the allocation properties are compatible with ValueType
   template<typename ValueType>
   bool is_compatible () const;
+
+  bool is_compatible (const int sts, const int pack_size) const;
 
 protected:
 
@@ -142,30 +138,14 @@ protected:
 // ================================= IMPLEMENTATION ================================== //
 
 template<typename ValueType>
-void FieldAllocProp::request_allocation () {
-  using ekat::ScalarTraits;
-  using scalar_type = typename ScalarTraits<ValueType>::scalar_type;
-  const int n = sizeof(ValueType) / sizeof(scalar_type);
-  request_allocation<scalar_type>(n);
-}
-
-template<typename ScalarType>
-void FieldAllocProp::request_allocation (const int pack_size) {
-  request_allocation (sizeof(ScalarType),pack_size);
-}
-
-template<typename ValueType>
 bool FieldAllocProp::is_compatible () const {
   using ekat::ScalarTraits;
 
   constexpr int sts = sizeof(typename ScalarTraits<ValueType>::scalar_type);
   constexpr int vts = sizeof(ValueType);
-  constexpr int vlen = vts / sts;
+  constexpr int pack_size = vts / sts;
 
-  // Allocation is compatible with ValueType if
-  //   - the scalar type of ValueType has the same size as m_scalar_type_size
-  //   - the size of ValueType must divide the last dim stride
-  return sts==m_scalar_type_size && (m_last_extent%vlen==0);
+  return is_compatible(sts,pack_size);
 }
 
 } // namespace scream
