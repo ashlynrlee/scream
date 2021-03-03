@@ -29,7 +29,8 @@ void Functions<S,D>::compute_brunt_shoc_length(
     range_pack2.set(range_pack1 >= nlevi, 1);
     ekat::index_and_shift<1>(s_thv_zi, range_pack2, thv_zi_k, thv_zi_kp1);
 
-    brunt(k) = (ggr/thv(k))*(thv_zi_k-thv_zi_kp1)/dz_zt(k);
+    const auto in_range = range_pack1 < nlev;
+    brunt(k).set(in_range, (ggr/thv(k))*(thv_zi_k-thv_zi_kp1)/dz_zt(k));
   });
 }
 

@@ -43,13 +43,16 @@ void Functions<S,D>
   const Int nlev_pack = ekat::npack<Spack>(nlev);
   Kokkos::parallel_for(Kokkos::TeamThreadRange(team, nlev_pack), [&] (const Int& k) {
 
+    auto indices = ekat::range<IntSmallPack>(Spack::n*k);
+
     // Compute buoyant production term
-    const Spack a_prod_bu = (ggr/basetemp)*wthv_sec(k);
+    const Spack a_prod_bu (indices<nlev, (ggr/basetemp)*wthv_sec(k));
+    // const Spack a_prod_bu = (ggr/basetemp)*wthv_sec(k);
 
     tke(k) = ekat::max(0,tke(k));
 
     // Shear production term, use diffusivity from previous timestep
-    const Spack a_prod_sh = tk(k)*sterm_zt(k);
+    const Spack a_prod_sh (indices<nlev, tk(k)*sterm_zt(k));
 
     // Dissipation term
     a_diss(k)=Cee/shoc_mix(k)*ekat::pow(tke(k),sp(1.5));

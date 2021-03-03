@@ -48,6 +48,7 @@ void Functions<S,D>::eddy_diffusivities(
 
   const Int nlev_pack = ekat::npack<Spack>(nlev);
   Kokkos::parallel_for(Kokkos::TeamThreadRange(team, nlev_pack), [&] (const Int& k) {
+    const auto indices = ekat::range<IntSmallPack>(Spack::n*k);
     // Dimensionless Okukhov length considering only
     // the lowest model grid layer height to scale
     const auto z_over_L = zt_grid_1d/obklen;
@@ -65,9 +66,9 @@ void Functions<S,D>::eddy_diffusivities(
     // use modified coefficients of tkh and tk that are primarily based on shear
     // production and SHOC length scale, to promote mixing within the PBL and to a
     // height slighty above to ensure smooth transition.
-    const Smask condition = (zt_grid(k) < pblh+pbl_trans) && (z_over_L > 0);
-    tkh(k).set(condition, Ckh_s*ekat::square(shoc_mix(k))*ekat::sqrt(sterm_zt(k)));
-    tk(k).set(condition,  Ckm_s*ekat::square(shoc_mix(k))*ekat::sqrt(sterm_zt(k)));
+    const Smask condition = (zt_grid(k) < pblh+pbl_trans) && (z_over_L > 0) && indices<nlev;
+    tkh(k).set(condition, Ckh_s*ekat::square(shoc_mix(k))*ekat::sqrt(sterm_zt(k),condition));
+    tk(k).set(condition,  Ckm_s*ekat::square(shoc_mix(k))*ekat::sqrt(sterm_zt(k),condition));
 
     // Default definition of eddy diffusivity for heat and momentum
     tkh(k).set(!condition, Ckh*isotropy(k)*tke(k));

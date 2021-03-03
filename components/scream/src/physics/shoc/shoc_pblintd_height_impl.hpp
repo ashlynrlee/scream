@@ -62,7 +62,7 @@ void Functions<S,D>::pblintd_height(
 
     // Set indices_pack entry to -1 if rino(k)<ricr or
     // if global index is not in [nlev-npbl, nlev-1)
-    indices_pack.set(rino(k)<ricr || !in_range, -1);
+    indices_pack.set( !in_range|| rino(k)<ricr, -1);
 
     // Local max index s.t. rino(k)>=ricr and k in [nlev-npbl, nlev-1)
     if (local_max < ekat::max(indices_pack))

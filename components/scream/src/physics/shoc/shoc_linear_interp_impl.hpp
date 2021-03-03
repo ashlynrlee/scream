@@ -60,7 +60,8 @@ void Functions<S,D>::linear_interp(
   team.team_barrier();
 
   Kokkos::parallel_for(Kokkos::TeamThreadRange(team, km2_pack), [&] (const Int& k2) {
-    y2(k2).set(y2(k2) < minthresh, minthresh);
+    const auto pack_indices = ekat::range<IntSmallPack>(k2*Spack::n);
+    y2(k2).set(pack_indices<km2 && y2(k2) < minthresh, minthresh);
   });
 }
 

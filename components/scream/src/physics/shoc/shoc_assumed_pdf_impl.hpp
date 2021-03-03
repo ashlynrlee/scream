@@ -104,15 +104,15 @@ void Functions<S,D>::shoc_assumed_pdf(
     const auto qw_first = qw(k);
     const auto w3var = w3_zt(k);
     const auto thlsec = thl_sec_zt(k);
-    const auto qwsec = qw_sec_zt(k);
-    const auto qwthlsec = qwthl_sec_zt(k);
-    const auto wqwsec = wqw_sec_zt(k);
-    const auto wthlsec = wthl_sec_zt(k);
+    const Spack qwsec (active_entries, qw_sec_zt(k));
+    const Spack qwthlsec (active_entries, qwthl_sec_zt(k));
+    const Spack wqwsec (active_entries, wqw_sec_zt(k));
+    const Spack wthlsec (active_entries, wthl_sec_zt(k));
 
     // Compute square roots of some variables so we don't have to compute these again
     const auto sqrtw2 = ekat::sqrt(w_sec(k));
-    const auto sqrtthl = ekat::max(thl_tol,ekat::sqrt(thlsec));
-    const auto sqrtqt = ekat::max(rt_tol,ekat::sqrt(qwsec));
+    const auto sqrtthl = ekat::max(thl_tol,ekat::sqrt(thlsec,active_entries));
+    const auto sqrtqt = ekat::max(rt_tol,ekat::sqrt(qwsec,active_entries));
 
     // Find parameters for vertical velocity
     Spack Skew_w(0), w1_1(w_first), w1_2(w_first), w2_1(0), w2_2(0), a(0.5);
@@ -140,7 +140,7 @@ void Functions<S,D>::shoc_assumed_pdf(
     Spack thl1_1(thl_first), thl1_2(thl_first), thl2_1(0), thl2_2(0),
           sqrtthl2_1(0), sqrtthl2_2(0);
     {
-      const Smask condition =  thlsec > (thl_tol*thl_tol) && ekat::abs(w1_2 - w1_1) > w_thresh;
+      const Smask condition = active_entries && thlsec > (thl_tol*thl_tol) && ekat::abs(w1_2 - w1_1) > w_thresh;
 
       const Spack corrtest1 = ekat::max(-1, ekat::min(1, wthlsec/(sqrtw2*sqrtthl)));
       const Spack tmp_val_1(-corrtest1/w1_1), tmp_val_2(-corrtest1/w1_2);
@@ -175,7 +175,7 @@ void Functions<S,D>::shoc_assumed_pdf(
     Spack qw1_1(qw_first), qw1_2(qw_first), qw2_1(0), qw2_2(0),
           sqrtqw2_1(0), sqrtqw2_2(0);
     {
-      const Smask condition = qwsec > (rt_tol*rt_tol) && ekat::abs(w1_2 - w1_1) > w_thresh;
+      const Smask condition = active_entries && qwsec > (rt_tol*rt_tol) && ekat::abs(w1_2 - w1_1) > w_thresh;
 
       const Spack corrtest2 = ekat::max(-1, ekat::min(1, wqwsec/(sqrtw2*sqrtqt)));
       const Spack tmp_val_1(-corrtest2/w1_1), tmp_val_2(-corrtest2/w1_2);
