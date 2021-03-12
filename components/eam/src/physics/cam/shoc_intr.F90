@@ -384,7 +384,34 @@ end function shoc_implements_cnst
        call cnst_get_ind('NUMLIQ',ixnumliq)
        lq(ixnumliq) = .false.
        edsclr_dim = edsclr_dim-1
-    endif 
+    endif
+
+    ! Write variables for shoc stand alone test: INPUT 
+    call addfld( "pref_mid_inSHOC", (/'lev'/),  'I', 'unitless', "pref_mid")
+    call addfld( "t_inSHOC",        (/'lev'/),  'I', 'unitless', "t"       )
+    call addfld( "alst_inSHOC",     (/'lev'/),  'I', 'unitless', "alst"    )
+    call addfld( "zi_inSHOC",       (/'ilev'/), 'I', 'unitless', "zi"      )
+    call addfld( "zm_inSHOC",       (/'lev'/),  'I', 'unitless', "zm"      )
+    call addfld( "omega_inSHOC",    (/'lev'/),  'I', 'unitless', "omega"   )
+    call addfld( "shf_inSHOC",      horiz_only, 'I', 'unitless', "shf"     )
+    call addfld( "cflx_k0_inSHOC",  horiz_only, 'I', 'unitless', "cflx_k0" )
+    call addfld( "wsx_inSHOC",      horiz_only, 'I', 'unitless', "wsx"     )
+    call addfld( "wsy_inSHOC",      horiz_only, 'I', 'unitless', "wsy"     )
+    call addfld( "shoc_qv_inSHOC",  (/'lev'/),  'I', 'unitless', "shoc_qv" )
+    call addfld( "host_dx_inSHOC",  horiz_only, 'I', 'unitless', "host_dx" )
+    call addfld( "host_dy_inSHOC",  horiz_only, 'I', 'unitless', "host_dy" )
+    call addfld( "pmid_inSHOC",     (/'lev'/),  'I', 'unitless', "pmid"    )
+    call addfld( "pint_inSHOC",     (/'ilev'/), 'I', 'unitless', "pint"    )
+    call addfld( "pdel_inSHOC",     (/'lev'/),  'I', 'unitless', "pdel"    )
+    call addfld( "phis_inSHOC",     horiz_only, 'I', 'unitless', "phis"    )
+    call addfld( "s_inSHOC",        (/'lev'/),  'I', 'unitless', "s"       )
+    call addfld( "tke_inSHOC",      (/'lev'/),  'I', 'unitless', "tke"     )
+    call addfld( "u_inSHOC",        (/'lev'/),  'I', 'unitless', "u"       )
+    call addfld( "v_inSHOC",        (/'lev'/),  'I', 'unitless', "v"       )
+    call addfld( "wthv_sec_inSHOC", (/'lev'/),  'I', 'unitless', "wthv_sec")
+    call addfld( "tkh_inSHOC",      (/'lev'/),  'I', 'unitless', "tkh"     )
+    call addfld( "tk_inSHOC",       (/'lev'/),  'I', 'unitless', "tk"      )
+    call addfld( "shoc_ql_inSHOC",  (/'lev'/),  'I', 'unitless', "shoc_ql" )
 
     ! Add SHOC fields
     call addfld('SHOC_TKE', (/'lev'/), 'A', 'm2/s2', 'TKE')
@@ -493,6 +520,7 @@ end function shoc_implements_cnst
     use shoc,           only: shoc_main
     use cam_history,    only: outfld
     use scamMod,        only: single_column, iop_mode  
+    use ref_pres,               only: pref_mid
  
     implicit none
     
@@ -602,6 +630,7 @@ end function shoc_implements_cnst
    real(r8) :: wv_a(pcols), wv_b(pcols), wl_b(pcols), wl_a(pcols)
    real(r8) :: se_dis(pcols), se_a(pcols), se_b(pcols), shoc_s(pcols,pver)
    real(r8) :: shoc_t(pcols,pver)
+   real(r8) :: pref_mid_temp(pcols,pver)
    
    ! --------------- !
    ! Pointers        !
@@ -823,6 +852,39 @@ end function shoc_implements_cnst
      end if
    enddo    
     
+   ! ------------------------------------------------- !
+   ! Write SHOC inputs to file                         !
+   ! ------------------------------------------------- !
+   do k = 1,pver
+     do i = 1,ncol
+       pref_mid_temp(i,k) = pref_mid(k)
+     end do
+   end do
+   call outfld( "pref_mid_inSHOC", pref_mid_temp,          pcols, lchnk )
+   call outfld( "t_inSHOC",        state1%t,               pcols, lchnk )
+   call outfld( "alst_inSHOC",     alst,                   pcols, lchnk )
+   call outfld( "zi_inSHOC",       state1%zi,              pcols, lchnk )
+   call outfld( "zm_inSHOC",       state1%zm,              pcols, lchnk )
+   call outfld( "omega_inSHOC",    state1%omega,           pcols, lchnk )
+   call outfld( "shf_inSHOC",      cam_in%shf,             pcols, lchnk )
+   call outfld( "cflx_k0_inSHOC",  cam_in%cflx,            pcols, lchnk )
+   call outfld( "wsx_inSHOC",      cam_in%wsx,             pcols, lchnk )
+   call outfld( "wsy_inSHOC",      cam_in%wsy,             pcols, lchnk )
+   call outfld( "shoc_qv_inSHOC",  state1%q(i,k,ixq),      pcols, lchnk )
+   call outfld( "host_dx_inSHOC",  host_dx_in,             pcols, lchnk )
+   call outfld( "host_dy_inSHOC",  host_dy_in,             pcols, lchnk )
+   call outfld( "pmid_inSHOC",     state%pmid,             pcols, lchnk )
+   call outfld( "pint_inSHOC",     state%pint,             pcols, lchnk )
+   call outfld( "pdel_inSHOC",     state%pdel,             pcols, lchnk )
+   call outfld( "phis_inSHOC",     state1%phis,            pcols, lchnk )
+   call outfld( "s_inSHOC",        shoc_s,                 pcols, lchnk )
+   call outfld( "tke_inSHOC",      tke_zt,                 pcols, lchnk )
+   call outfld( "u_inSHOC",        um,                     pcols, lchnk )
+   call outfld( "v_inSHOC",        vm,                     pcols, lchnk )
+   call outfld( "wthv_sec_inSHOC", wthv,                   pcols, lchnk )
+   call outfld( "tkh_inSHOC",      tkh,                    pcols, lchnk )
+   call outfld( "tk_inSHOC",       tk,                     pcols, lchnk )
+   call outfld( "shoc_ql_inSHOC",  state1%q(i,k,ixcldliq), pcols, lchnk)
    ! ------------------------------------------------- !
    ! Actually call SHOC                                !
    ! ------------------------------------------------- !   
