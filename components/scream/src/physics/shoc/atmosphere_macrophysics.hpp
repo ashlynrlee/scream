@@ -34,6 +34,7 @@ class SHOCMacrophysics : public scream::AtmosphereProcess
   using Smask = typename SHF::Smask;
   using view_1d  = typename SHF::view_1d<Pack1d>;
   using view_1d_const  = typename SHF::view_1d<const Pack1d>;
+  using view_1d_scalar = typename SHF::view_1d<Real>;
   using view_2d  = typename SHF::view_2d<SHF::Spack>;
   using view_2d_const  = typename SHF::view_2d<const Spack>;
   using sview_2d = typename KokkosTypes<DefaultDevice>::template view_2d<Real>;
@@ -102,6 +103,10 @@ public:
           tracers(i,k,q_v)[q_p] = Q(i,q,k_v)[k_p];
         }
       }
+
+      // host_dx/dy
+      host_dx(i)[0] = 5;
+      host_dy(i)[0] = 5;
 
       const int nlevi_v = nlev/Spack::n;
       const int nlevi_p = nlev%Spack::n;
@@ -182,6 +187,7 @@ public:
 
     // Local variables
     int ncol, nlev, nlev_packs, num_tracers, num_tracer_packs;
+    view_1d_scalar column_areas;
     view_2d_const T_mid;
     view_2d_const z_int;
     view_2d_const z_mid;
@@ -198,6 +204,8 @@ public:
     view_3d       Q;
     view_2d       qc;
     view_2d       qc_copy;
+    view_1d       host_dx;
+    view_1d       host_dy;
     view_2d       shoc_s;
     view_2d       tke;
     view_2d       tke_copy;
@@ -221,14 +229,15 @@ public:
 
     // Assigning local variables
     void set_variables(const int ncol_, const int nlev_, const int num_tracers_,
-                       const int nlev_packs_, const int num_tracer_packs_,
+                       const int nlev_packs_, const int num_tracer_packs_, view_1d_scalar column_areas_,
                        view_2d_const T_mid_, view_2d_const z_int_,
                        view_2d_const z_mid_, view_2d_const p_mid_, view_2d_const pseudo_density_,
                        view_2d_const omega_,
                        view_1d_const phis_, view_1d_const surf_sens_flux_, view_1d_const surf_latent_flux_,
                        view_1d_const surf_u_mom_flux_, view_1d_const surf_v_mom_flux_,
                        view_2d_const qv_, view_2d qv_copy_, view_3d Q_, view_2d qc_, view_2d qc_copy_,
-                       view_2d tke_, view_2d tke_copy_, view_2d s_, view_2d rrho_, view_2d rrho_i_,
+                       view_2d tke_, view_2d tke_copy_, view_1d host_dx_, view_1d host_dy_,
+                       view_2d s_, view_2d rrho_, view_2d rrho_i_,
                        view_2d thv_, view_2d dz_,view_2d zt_grid_,view_2d zi_grid_, view_1d wpthlp_sfc_,
                        view_1d wprtp_sfc_,view_1d upwp_sfc_,view_1d vpwp_sfc_, view_2d wtracer_sfc_,
                        view_2d wm_zt_,view_2d exner_,view_2d thlm_,view_2d qw_,view_3d tracers_)
@@ -238,7 +247,7 @@ public:
       nlev_packs = nlev_packs_;
       num_tracers = num_tracers_;
       num_tracer_packs = num_tracer_packs_;
-      // IN
+      column_areas = column_areas_;
       T_mid = T_mid_;
       z_int = z_int_;
       z_mid = z_mid_;
@@ -253,9 +262,10 @@ public:
       qv = qv_;
       qv_copy = qv_copy_;
       Q = Q_;
-      // OUT
       qc = qc_;
       qc_copy = qc_copy_;
+      host_dx = host_dx_;
+      host_dy = host_dy_;
       shoc_s = s_;
       tke = tke_;
       tke_copy = tke_copy_;
@@ -394,6 +404,8 @@ protected:
   Int m_nadv;
   Int m_num_tracers;
   Int hdtime;
+
+  view_1d_scalar m_column_areas;
 
   // Store the structures for each arguement to shoc_main;
   SHF::SHOCInput input;

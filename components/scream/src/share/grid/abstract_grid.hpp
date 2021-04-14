@@ -49,6 +49,9 @@ public:
   // in the native 2d layout
   using lid_to_idx_map_type = kokkos_types::view<int**>;
 
+  // View type for storing column areas
+  using column_area_type = kokkos_types::view_1d<Real>;
+
   // Constructor(s) & Destructor
   AbstractGrid (const GridType type,
                 const std::string& name)
@@ -100,6 +103,8 @@ public:
   virtual void set_geometry_data (const std::string& name, const geo_view_type& data) = 0;
   const geo_view_type& get_geometry_data (const std::string& name) const;
 
+  // Get a 1d view containing the column area for each dof
+  const column_area_type& get_column_areas () const { return m_column_areas; }
 protected:
 
   // The grid name and type
@@ -112,12 +117,14 @@ protected:
   int m_num_vert_levs;
 
   // The global ID of each dof
-  dofs_list_type        m_dofs_gids;
+  dofs_list_type      m_dofs_gids;
 
   // The map lid->idx
-  lid_to_idx_map_type   m_lid_to_idx;
+  lid_to_idx_map_type m_lid_to_idx;
 
-  geo_view_map_type     m_geo_views;
+  geo_view_map_type   m_geo_views;
+
+  column_area_type    m_column_areas;
 };
 
 inline const AbstractGrid::geo_view_type&

@@ -29,6 +29,7 @@ void SHOCMacrophysics::set_grids(const std::shared_ptr<const GridsManager> grids
   auto grid = grids_manager->get_grid(grid_name);
   m_num_cols = grid->get_num_local_dofs(); // Number of columns on this rank
   m_num_levs = grid->get_num_vertical_levels();  // Number of levels per column
+  m_column_areas = grid->get_column_areas(); // Column areas
 
   // Define the different field layouts that will be used for this process
   using namespace ShortFieldTagsNames;
@@ -66,8 +67,6 @@ void SHOCMacrophysics::set_grids(const std::shared_ptr<const GridsManager> grids
   add_computed_field("qv",               scalar3d_layout_mid, Qunit,  grid_name);
 
   // Input variables
-  add_required_field("host_dx",        scalar2d_layout_col, m,  grid_name);
-  add_required_field("host_dy",        scalar2d_layout_col, m,  grid_name);
   add_required_field("p_mid",          scalar3d_layout_mid, Pa, grid_name);
   add_required_field("pint",           scalar3d_layout_int, Pa, grid_name);
   add_required_field("pseudo_density", scalar3d_layout_mid, Pa, grid_name);
@@ -152,7 +151,9 @@ void SHOCMacrophysics::initialize_impl (const util::TimeStamp& t0)
   view_1d wpthlp_sfc("wpthlp_sfc",m_num_cols),
           wprtp_sfc("wprtp_sfc",m_num_cols),
           upwp_sfc("upwp_sfc",m_num_cols),
-          vpwp_sfc("vpwp_sfc",m_num_cols);
+          vpwp_sfc("vpwp_sfc",m_num_cols),
+          host_dx("host_dx",m_num_cols),
+          host_dy("host_dy",m_num_cols);
 
   view_2d rrho("rrho",m_num_cols,nlev_packs),
           rrho_i("rrhoi",m_num_cols,nlevi_packs),
@@ -174,15 +175,15 @@ void SHOCMacrophysics::initialize_impl (const util::TimeStamp& t0)
   //       removing this allocation.
   view_3d tracers("tracers",m_num_cols,m_num_levs,num_tracer_packs);
 
-  shoc_preprocess.set_variables(m_num_cols,m_num_levs,m_num_tracers,nlev_packs,num_tracer_packs,T_mid,
-                                z_int,z_mid,p_mid,pseudo_density,omega,phis,surf_sens_flux,surf_latent_flux,
+  shoc_preprocess.set_variables(m_num_cols,m_num_levs,m_num_tracers,nlev_packs,num_tracer_packs,m_column_areas,
+                                T_mid,z_int,z_mid,p_mid,pseudo_density,omega,phis,surf_sens_flux,surf_latent_flux,
                                 surf_u_mom_flux,surf_v_mom_flux,qv,qv_copy,Q,qc,qc_copy,tke,tke_copy,
-                                s,rrho,rrho_i,thv,dz,zt_grid,zi_grid,wpthlp_sfc,wprtp_sfc,upwp_sfc,vpwp_sfc,
+                                host_dx, host_dy, s,rrho,rrho_i,thv,dz,zt_grid,zi_grid,wpthlp_sfc,wprtp_sfc,upwp_sfc,vpwp_sfc,
                                 wtracer_sfc,wm_zt,exner,thlm,qw,tracers);
 
   // Input Variables:
-  input.host_dx     = m_shoc_fields_in["host_dx"].get_reshaped_view<const Pack1d*>();
-  input.host_dy     = m_shoc_fields_in["host_dy"].get_reshaped_view<const Pack1d*>();
+  input.host_dx     = host_dx;
+  input.host_dy     = host_dy;
   input.zt_grid     = shoc_preprocess.zt_grid;
   input.zi_grid     = shoc_preprocess.zi_grid;
   input.pres        = p_mid;
