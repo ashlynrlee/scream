@@ -382,11 +382,14 @@ contains
     ! this variable, check if variable has a time dimension
     hist_var%has_t_dim = .false.
     allocate(hist_var%dimid(numdims),hist_var%dimlen(numdims))
+    print *, "name:", hist_var%name
     do dim_ii = 1,numdims
       ierr = pio_inq_dimid(pio_atm_file%pioFileDesc,trim(var_dimensions(dim_ii)),hist_var%dimid(dim_ii))
       call errorHandle("EAM_PIO ERROR: Unable to find dimension id for "//trim(var_dimensions(dim_ii)),ierr)
+
       ierr = pio_inq_dimlen(pio_atm_file%pioFileDesc,hist_var%dimid(dim_ii),hist_var%dimlen(dim_ii))
       call errorHandle("EAM_PIO ERROR: Unable to determine length for dimension "//trim(var_dimensions(dim_ii)),ierr)
+      print *, "ii,dimid,dimlen:",dim_ii,hist_var%dimid(dim_ii),hist_var%dimlen(dim_ii)
       if (hist_var%dimlen(dim_ii).eq.0) hist_var%has_t_dim = .true.
     end do
 
@@ -806,6 +809,7 @@ contains
       allocate(curr%iodesc)
       curr%tag = trim(tag)
       loc_len = size(dimension_len)
+      print *, "ndofs,dim_lengths:",size(compdof),dimension_len
       if ( loc_len.eq.1 .and. dimension_len(loc_len).eq.0 ) then
         allocate(curr%iodesc)
       else
@@ -881,6 +885,7 @@ contains
         hist_var => curr%var
         if (.not.hist_var%compdof_set) call errorHandle("PIO ERROR: unable to set decomp for file, var: "//trim(current_atm_file%filename)//", "//trim(hist_var%name)//". Set DOF.",999)
         ! Assign decomp
+        print *, "set_decomp, var, has_t::", hist_var%name, hist_var%has_t_dim
         if (hist_var%has_t_dim) then
           loc_len = max(1,hist_var%numdims-1)
           call get_decomp(hist_var%pio_decomp_tag,hist_var%dtype,hist_var%dimlen(:loc_len),hist_var%compdof,hist_var%iodesc)
@@ -1071,6 +1076,18 @@ contains
     call get_var(pio_atm_file,varname,var)
     call PIO_setframe(pio_atm_file%pioFileDesc,var%piovar,int(max(1,pio_atm_file%numRecs),kind=pio_offset_kind))
     call pio_read_darray(pio_atm_file%pioFileDesc, var%piovar, var%iodesc, hbuf, ierr)
+    
+    if (varname == "horiz_winds") then
+      print *, ierr
+      print *, var%name
+      print *, var%numdims
+      ! print *, var%compdof
+      print *, var%dimid
+      print *, var%dimlen
+      print *, var%has_t_dim
+
+      print *, "hbuf(1):", hbuf(1)
+    endif
     call errorHandle( 'eam_grid_read_darray_1d_real: Error reading variable '//trim(varname),ierr)
 
   end subroutine grid_read_darray_1d_real

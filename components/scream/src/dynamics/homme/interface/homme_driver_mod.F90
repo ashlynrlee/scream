@@ -127,6 +127,7 @@ contains
     use homme_context_mod, only: is_model_inited, is_data_structures_inited, &
                                  elem, hybrid, hvcoord, deriv, tl
 
+    integer :: ie
     if (.not. is_data_structures_inited) then
       call abortmp ("Error! 'prim_init_data_structures_f90' has not been called yet.\n")
     elseif (is_model_inited) then
@@ -146,7 +147,15 @@ contains
     call prim_init_ref_states_views (elem)
     call prim_init_diags_views (elem)
 
+    ! In order to print up to date stuff in F90
+    call prim_copy_cxx_to_f90 (.true.)
+
+    print *, "prim_init2 v0: prim_printstate..."
+    do ie=1,nelemd
+      print *, "max(dp):",maxval(elem(ie)%state%dp3d(:,:,:,tl%n0))
+    enddo
     call prim_printstate(elem, tl, hybrid,hvcoord,1, nelemd)
+    print *, "prim_init2 v0: prim_printstate ... done!"
 
     is_model_inited = .true.
 

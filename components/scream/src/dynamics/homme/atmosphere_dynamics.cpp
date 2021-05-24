@@ -1,5 +1,4 @@
 #include "atmosphere_dynamics.hpp"
-#include <Kokkos_ExecPolicy.hpp>
 
 // HOMMEXX Includes
 #include "CaarFunctor.hpp"
@@ -7,6 +6,7 @@
 #include "Dimensions.hpp"
 #include "Elements.hpp"
 #include "ElementsForcing.hpp"
+#include "ElementsState.hpp"
 #include "ForcingFunctor.hpp"
 #include "ExecSpaceDefs.hpp"
 #include "Hommexx_Session.hpp"
@@ -303,6 +303,7 @@ void HommeDynamics::initialize_impl (const util::TimeStamp& /* t0 */)
     fm = fm_type(fm_in.data(),num_elems);
   }
 
+
   // Setup the p2d and d2p remappers
   m_p2d_remapper->registration_begins();
   m_d2p_remapper->registration_begins();
@@ -335,7 +336,7 @@ void HommeDynamics::initialize_impl (const util::TimeStamp& /* t0 */)
   m_ic_remapper->remap(true);
   m_ic_remapper = nullptr;
 
-  // Convert T->vtheta_dp (in place). Use FT (still unused) as temporary for p_mid 
+  // Convert T->vtheta_dp (in place).
   constexpr int N = sizeof(Homme::Scalar) / sizeof(Real);
   using KT = KokkosTypes<DefaultDevice>;
   using Pack = ekat::Pack<Real,N>;
@@ -385,6 +386,24 @@ void HommeDynamics::initialize_impl (const util::TimeStamp& /* t0 */)
     // Release the scratch mem
     ws.release(p_int);
     ws.release(p_mid);
+  });
+
+  // Init qdp = q*dp (q comes from initial conditions)
+  const auto qdp = c.get<Homme::Tracers>().qdp;
+  const auto q   = c.get<Homme::Tracers>().Q;
+  const auto dp  = c.get<Homme::ElementsState>().m_dp3d;
+  const int n0_qdp = c.get<Homme::TimeLevel>().n0_qdp;
+  const int num_tracers = qdp.extent_int(2);
+  printf ("n0,n0_qdp: %d, %d\n", n0, n0_qdp);
+  Kokkos::parallel_for(Kokkos::RangePolicy<>(0,num_elems*num_tracers*NP*NP*NVL),
+                       KOKKOS_LAMBDA (const int idx) {
+    const int ie =  idx / (num_tracers*NP*NP*NVL);
+    const int iq = (idx / (NP*NP*NVL)) % num_tracers;
+    const int ip = (idx / (NP*NVL)) % NP;
+    const int jp = (idx / NVL) % NP;
+    const int k  = idx % NVL;
+
+    qdp(ie,n0_qdp,iq,ip,jp,k) = q(ie,iq,ip,jp,k) * dp(ie,n0,ip,jp,k);
   });
 
   prim_init_model_f90 ();
