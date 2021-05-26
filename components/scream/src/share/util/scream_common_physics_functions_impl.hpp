@@ -86,8 +86,10 @@ calculate_temperature_from_virtual_temperature(const ScalarT& T_virtual, const S
   using C = scream::physics::Constants<Real>;
 
   static constexpr auto ep_2 = C::ep_2;
+  static constexpr auto one  = C::ONE;
+  static constexpr auto c1   = - one + one/ep_2;
 
-  return T_virtual*((ep_2*(1.0+qv))/(qv+ep_2));
+  return T_virtual / ( one + c1*qv );
 }
 
 template<typename DeviceT>
@@ -112,8 +114,15 @@ ScalarT PhysicsFunctions<DeviceT>::calculate_virtual_temperature(const ScalarT& 
 {
   using C = scream::physics::Constants<Real>;
 
-  static constexpr auto ep_2 = C::ep_2;
-  return temperature*((qv+ep_2)/(ep_2*(1.0+qv)));
+  // static constexpr auto ep_2 = C::ep_2;
+  // static constexpr auto one  = C::ONE;
+  // static constexpr auto c1   = - one + one/ep_2;
+  static constexpr auto Rdry = C::Rair;
+  static constexpr auto Rwv  = C::RH2O;
+
+  const auto Rstar = Rdry + (Rwv - Rdry)*qv;
+  return temperature * (Rstar / Rdry);
+  // return temperature * ( one + c1*qv );
 }
 
 template<typename DeviceT>

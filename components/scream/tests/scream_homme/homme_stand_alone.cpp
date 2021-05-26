@@ -5,6 +5,7 @@
 #include "dynamics/homme/dynamics_driven_grids_manager.hpp"
 #include "dynamics/homme/interface/scream_homme_interface.hpp"
 
+#include "ekat/ekat_assert.hpp"
 #include "ekat/ekat_parse_yaml_file.hpp"
 
 // Hommexx includes
@@ -12,9 +13,24 @@
 #include "SimulationParams.hpp"
 #include "Types.hpp"
 
+#include "ekat/util/ekat_feutils.hpp"
+#include "ekat/ekat_assert.hpp"
+
+static int get_default_fpes () {
+#ifdef SCREAM_FPE
+  return (FE_DIVBYZERO |
+          FE_INVALID   |
+          FE_OVERFLOW);
+#else
+  return 0;
+#endif
+}
+
 TEST_CASE("scream_homme_stand_alone", "scream_homme_stand_alone") {
   using namespace scream;
   using namespace scream::control;
+
+  ekat::enable_fpes(get_default_fpes());
 
   // Load ad parameter list
   std::string fname = "input.yaml";

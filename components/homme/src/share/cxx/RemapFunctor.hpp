@@ -527,6 +527,14 @@ private:
   compute_target_thickness(KernelVariables &kv) const {
     auto tgt_layer_thickness = Homme::subview(m_fields_provider.m_tgt_layer_thickness, kv.ie);
 
+    if (kv.ie==0) {
+      auto nm1 = (m_data.np1+1) % 3;
+      auto n0  = (m_data.np1+2) % 3;
+      auto np1 = (m_data.np1+3) % 3;
+      printf("compute tgt thickness, ps(%d,%d,%d,%d) = %f\n",0,nm1,0,0,m_state.m_ps_v(0,nm1,0,0));
+      printf("compute tgt thickness, ps(%d,%d,%d,%d) = %f\n",0,n0, 0,0,m_state.m_ps_v(0,n0,0,0));
+      printf("compute tgt thickness, ps(%d,%d,%d,%d) = %f\n",0,np1,0,0,m_state.m_ps_v(0,np1,0,0));
+    }
     m_hvcoord.compute_dp_ref(kv,Homme::subview(m_state.m_ps_v,kv.ie,m_data.np1),tgt_layer_thickness);
 
     return tgt_layer_thickness;

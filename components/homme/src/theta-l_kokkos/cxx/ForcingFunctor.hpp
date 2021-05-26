@@ -295,7 +295,16 @@ public:
             [&](const int &k, Real &accumulator) {
               accumulator += compute_fqdt(k,fq,qdp)/m_dt;
             },ps_forcing);
+          if (ps!=ps) {
+            printf("nan ps.\n");
+          }
+          if (ps_forcing!=ps_forcing) {
+            printf("nan ps_forcing.\n");
+          }
           ps += ps_forcing*m_dt;
+          if (ps!=ps) {
+            printf("nan ps post.\n");
+          }
           if (!m_adjust_ps) {
             Kokkos::parallel_for(Kokkos::ThreadVectorRange(kv.team,NUM_LEV),
                                  [&](const int& ilev) {

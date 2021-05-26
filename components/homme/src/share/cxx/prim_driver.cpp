@@ -51,6 +51,9 @@ void initialize_dp3d_from_ps_c () {
       const int jgp  =  (idx / NUM_LEV) % NP;
       const int ilev =   idx % NUM_LEV;
 
+      if (ilev==0) {
+        printf("init dp, ps(%d,%d,%d,%d) = %f\n",ie,tln0,igp,jgp,ps_v(ie,tln0,igp,jgp));
+      }
       dp3d(ie,tln0,igp,jgp,ilev) = hybrid_ai_delta[ilev]*ps0
                                  + hybrid_bi_delta[ilev]*ps_v(ie,tln0,igp,jgp);
     });
@@ -116,6 +119,10 @@ void prim_run_subcycle_c (const Real& dt, int& nstep, int& nm1, int& n0, int& np
     Diagnostics& diags = context.get<Diagnostics>();
     diags.run_diagnostics(true,0);
   }
+  auto ps_v = context.get<Elements>().m_state.m_ps_v;
+  printf("pre prim_step dp, ps(%d,%d,%d,%d) = %f\n",0,tl.nm1,0,0,ps_v(0,tl.nm1,0,0));
+  printf("pre prim_step dp, ps(%d,%d,%d,%d) = %f\n",0,tl.n0,0,0,ps_v(0,tl.n0,0,0));
+  printf("pre prim_step dp, ps(%d,%d,%d,%d) = %f\n",0,tl.np1,0,0,ps_v(0,tl.np1,0,0));
 
   // Loop over rsplit vertically lagrangian timesteps
   GPTLstart("tl-sc prim_step-loop");
@@ -125,6 +132,9 @@ void prim_run_subcycle_c (const Real& dt, int& nstep, int& nm1, int& n0, int& np
     prim_step(dt,false);
   }
   GPTLstop("tl-sc prim_step-loop");
+  printf("post prim_step dp, ps(%d,%d,%d,%d) = %f\n",0,tl.nm1,0,0,ps_v(0,tl.nm1,0,0));
+  printf("post prim_step dp, ps(%d,%d,%d,%d) = %f\n",0,tl.n0,0,0,ps_v(0,tl.n0,0,0));
+  printf("post prim_step dp, ps(%d,%d,%d,%d) = %f\n",0,tl.np1,0,0,ps_v(0,tl.np1,0,0));
 
   tl.update_tracers_levels(params.qsplit);
 
